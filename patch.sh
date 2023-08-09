@@ -3,12 +3,17 @@
 ORI_BOOT=$1
 SHA1=$(./magiskboot sha1 ${ORI_BOOT})
 RANDOMSEED=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 16)
+BUILD_PROP="system/etc/ramdisk/build.prop"
 
 exit_if_failed() {
     if [ $? -ne 0 ]; then
         echo "ERROR - Previous step failed!"
         exit 1
     fi
+}
+
+get_prop() {
+  cpio -i --to-stdout --quiet < ramdisk.cpio $BUILD_PROP | grep $1 | cut -d "=" -f 2
 }
 
 config() {
@@ -35,6 +40,21 @@ fi
 
 cleanup
 ./magiskboot unpack ${ORI_BOOT} 2>/dev/null
+
+BRAND=$(get_prop bootimage.brand)
+DEVICE=$(get_prop bootimage.device)
+MODEL=$(get_prop bootimage.model)
+NAME=$(get_prop bootimage.name)
+IMG_ID=$(get_prop build.id)
+INCR_VER=$(get_prop version.incremental)
+SDK_VER=$(get_prop version.sdk)
+PATCHED_IMG="${BRAND}_${MODEL}_${IMG_ID}_magisk.img"
+if [ ${BRAND} == "samsung" ]; then
+  PATCHED_IMG="${BRAND}_${MODEL}_${INCR_VER}_magisk.img"
+fi
+PATCHED_IMG="${PATCHED_IMG// /_}"
+
+echo "${IMG_ID}"
 
 config
 
@@ -69,6 +89,6 @@ if [ -f kernel ]; then
     77616E745F696E697472616D667300 2>/dev/null
 fi
 
-echo "# Creating - patched boot"
-./magiskboot repack ${ORI_BOOT} 2>/dev/null
+./magiskboot repack ${ORI_BOOT} ${PATCHED_IMG} 2>/dev/null
+echo "# Created - ${PATCHED_IMG}"
 exit_if_failed
