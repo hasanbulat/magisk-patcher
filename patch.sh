@@ -4,7 +4,13 @@ ORI_BOOT=$1
 SHA1=$(./magiskboot sha1 ${ORI_BOOT})
 RANDOMSEED=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 16)
 BUILD_PROP="system/etc/ramdisk/build.prop"
-
+DATE=$(date +%d%m%y)
+PATCH_MODE="boot"
+if [ $(basename ${ORI_BOOT}) == "init_boot.img" ]; then
+  PATCH_MODE="init_boot"
+fi
+echo "boot mode: ${PATCH_MODE}"
+IF_SAMSUNG=0
 exit_if_failed() {
     if [ $? -ne 0 ]; then
         echo "ERROR - Previous step failed!"
@@ -42,15 +48,18 @@ NAME=$(get_prop bootimage.name)
 IMG_ID=$(get_prop build.id)
 INCR_VER=$(get_prop version.incremental)
 SDK_VER=$(get_prop version.sdk)
-PATCHED_IMG="${BRAND}_${MODEL}_${IMG_ID}_magisk.img"
+PATCHED_IMG="AZQ_${PATCH_MODE}_${BRAND}_${MODEL}_${IMG_ID}_${DATE}"
+
 if [ ${BRAND} == "samsung" ]; then
-  PATCHED_IMG="${BRAND}_${MODEL}_${INCR_VER}_magisk.img"
+  IF_SAMSUNG=1
+  PATCHED_IMG="AZQ_${PATCH_MODE}_${BRAND}_${MODEL}_${INCR_VER}_${DATE}"
 fi
 PATCHED_IMG="${PATCHED_IMG// /_}"
+PATCHED_IMG=$(tr [:lower:] [:upper:] <<< ${PATCHED_IMG})
 
 echo "${MODEL}"
 
-# Write config to config file
+# Write  config file
 CONFIG="devices_config/${BRAND}/${MODEL}"
 config() {
   cat ${CONFIG} > config
@@ -58,7 +67,12 @@ config() {
   echo "RANDOMSEED=0x$RANDOMSEED" >> config
 }
 
-config
+if [ -f ${CONFIG} ]; then
+  config
+else
+  echo "ERROR - Can't find config for ${CONFIG}"
+  exit 1
+fi
 
 # Patch Ramdisk
 echo "# Patching ramdisk"
@@ -94,6 +108,16 @@ if [ -f kernel ]; then
 fi
 
 # Repack Boot image
-./magiskboot repack ${ORI_BOOT} ${PATCHED_IMG} 2>/dev/null
-echo "# Created - ${PATCHED_IMG}"
+./magiskboot repack ${ORI_BOOT} ${PATCHED_IMG}.img 2>/dev/null
+echo "# Created - ${PATCHED_IMG}.img"
 exit_if_failed
+
+if [ $IF_SAMSUNG -eq 1 ]; then
+  echo "it's samsung, make tar"
+  mv ${PATCHED_IMG}.img ${PATCH_MODE}.img
+  lz4 -B6 -f --content-size ${PATCH_MODE}.img ${PATCH_MODE}.img.lz4 2>/dev/null
+  exit_if_failed
+  tar -H ustar -cf "${PATCHED_IMG}.tar" ${PATCH_MODE}.img.lz4 2>/dev/null
+  exit_if_failed
+  echo "Created - ${PATCHED_IMG}.tar"
+fi
