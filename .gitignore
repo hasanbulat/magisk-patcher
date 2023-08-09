@@ -3,3 +3,4 @@ kernel
 new-boot.img
 ramdisk.cpio
 config
+*.img

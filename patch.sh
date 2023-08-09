@@ -12,18 +12,9 @@ exit_if_failed() {
     fi
 }
 
+# Read img prop from ramdisk
 get_prop() {
   cpio -i --to-stdout --quiet < ramdisk.cpio $BUILD_PROP | grep $1 | cut -d "=" -f 2
-}
-
-config() {
-  echo "KEEPVERITY=true" > config
-  echo "KEEPFORCEENCRYPT=true" >> config
-  echo "PATCHVBMETAFLAG=false" >> config
-  echo "RECOVERYMODE=false" >> config
-  echo "PREINITDEVICE=metadata" >> config
-  echo "SHA1=$SHA1" >> config
-  echo "RANDOMSEED=0x$RANDOMSEED" >> config
 }
 
 cleanup() {
@@ -39,11 +30,14 @@ if [ $# -ne 1 ]; then
 fi
 
 cleanup
+
+# Unpack Boot image
 ./magiskboot unpack ${ORI_BOOT} 2>/dev/null
 
 BRAND=$(get_prop bootimage.brand)
 DEVICE=$(get_prop bootimage.device)
 MODEL=$(get_prop bootimage.model)
+MODEL="${MODEL// /_}"
 NAME=$(get_prop bootimage.name)
 IMG_ID=$(get_prop build.id)
 INCR_VER=$(get_prop version.incremental)
@@ -54,10 +48,19 @@ if [ ${BRAND} == "samsung" ]; then
 fi
 PATCHED_IMG="${PATCHED_IMG// /_}"
 
-echo "${IMG_ID}"
+echo "${MODEL}"
+
+# Write config to config file
+CONFIG="devices_config/${BRAND}/${MODEL}"
+config() {
+  cat ${CONFIG} > config
+  echo "SHA1=$SHA1" >> config
+  echo "RANDOMSEED=0x$RANDOMSEED" >> config
+}
 
 config
 
+# Patch Ramdisk
 echo "# Patching ramdisk"
 ./magiskboot cpio ramdisk.cpio \
   "add 0750 init magiskinit" \
@@ -71,6 +74,7 @@ echo "# Patching ramdisk"
   "add 000 .backup/.magisk config" 2>/dev/null
 exit_if_failed
 
+# Pacth Kernel
 if [ -f kernel ]; then
   echo "# Patching fstab in boot image"
   ./magiskboot dtb dtb patch 2>/dev/null
@@ -89,6 +93,7 @@ if [ -f kernel ]; then
     77616E745F696E697472616D667300 2>/dev/null
 fi
 
+# Repack Boot image
 ./magiskboot repack ${ORI_BOOT} ${PATCHED_IMG} 2>/dev/null
 echo "# Created - ${PATCHED_IMG}"
 exit_if_failed
