@@ -76,14 +76,14 @@ fi
 
 source config
 
-# [ -z $KEEPVERITY ] && KEEPVERITY=false
-# [ -z $KEEPFORCEENCRYPT ] && KEEPFORCEENCRYPT=false
-# [ -z $PATCHVBMETAFLAG ] && PATCHVBMETAFLAG=false
-# [ -z $RECOVERYMODE ] && RECOVERYMODE=false
-# [ -z $SYSTEM_ROOT ] && SYSTEM_ROOT=false
-# export KEEPVERITY
-# export KEEPFORCEENCRYPT
-# export PATCHVBMETAFLAG
+[ -z $KEEPVERITY ] && KEEPVERITY=false
+[ -z $KEEPFORCEENCRYPT ] && KEEPFORCEENCRYPT=false
+[ -z $PATCHVBMETAFLAG ] && PATCHVBMETAFLAG=false
+[ -z $RECOVERYMODE ] && RECOVERYMODE=false
+[ -z $SYSTEM_ROOT ] && SYSTEM_ROOT=false
+export KEEPVERITY
+export KEEPFORCEENCRYPT
+export PATCHVBMETAFLAG
 
 # Patch Ramdisk
 echo "# Patching ramdisk"
