@@ -48,8 +48,8 @@ NAME=$(get_prop bootimage.name)
 IMG_ID=$(get_prop build.id)
 INCR_VER=$(get_prop version.incremental)
 SDK_VER=$(get_prop version.sdk)
-PATCHED_IMG="AZQ_${PATCH_MODE}_${BRAND}_${MODEL}_${IMG_ID}_${DATE}"
 
+PATCHED_IMG="AZQ_${PATCH_MODE}_${BRAND}_${MODEL}_${IMG_ID}_${DATE}"
 if [ ${BRAND} == "samsung" ]; then
   IF_SAMSUNG=1
   PATCHED_IMG="AZQ_${PATCH_MODE}_${BRAND}_${MODEL}_${INCR_VER}_${DATE}"
@@ -74,9 +74,21 @@ else
   exit 1
 fi
 
+source config
+
+# [ -z $KEEPVERITY ] && KEEPVERITY=false
+# [ -z $KEEPFORCEENCRYPT ] && KEEPFORCEENCRYPT=false
+# [ -z $PATCHVBMETAFLAG ] && PATCHVBMETAFLAG=false
+# [ -z $RECOVERYMODE ] && RECOVERYMODE=false
+# [ -z $SYSTEM_ROOT ] && SYSTEM_ROOT=false
+# export KEEPVERITY
+# export KEEPFORCEENCRYPT
+# export PATCHVBMETAFLAG
+
 # Patch Ramdisk
 echo "# Patching ramdisk"
 ./magiskboot cpio ramdisk.cpio \
+  "mv init init_ori" \
   "add 0750 init magiskinit" \
   "mkdir 0750 overlay.d" \
   "mkdir 0750 overlay.d/sbin" \
@@ -85,6 +97,7 @@ echo "# Patching ramdisk"
   "patch" \
   "backup ramdisk.cpio.orig" \
   "mkdir 000 .backup" \
+  "mv init_ori .backup/init" \
   "add 000 .backup/.magisk config" 2>/dev/null
 exit_if_failed
 
@@ -112,6 +125,7 @@ fi
 echo "# Created - ${PATCHED_IMG}.img"
 exit_if_failed
 
+# Create tar for samsung
 if [ $IF_SAMSUNG -eq 1 ]; then
   echo "it's samsung, make tar"
   mv ${PATCHED_IMG}.img ${PATCH_MODE}.img
