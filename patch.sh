@@ -98,7 +98,7 @@ echo "# Patching ramdisk"
   "backup ramdisk.cpio.orig" \
   "mkdir 000 .backup" \
   "mv init_ori .backup/init" \
-  "add 000 .backup/.magisk config" 2>/dev/null
+  "add 000 .backup/.magisk config" #2>/dev/null
 exit_if_failed
 
 # Pacth Kernel
