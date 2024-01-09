@@ -6,11 +6,8 @@ RANDOMSEED=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 16)
 BUILD_PROP="system/etc/ramdisk/build.prop"
 DATE=$(date +%d%m%y)
 PATCH_MODE="boot"
-if [ $(basename ${ORI_BOOT}) == "init_boot.img" ]; then
-  PATCH_MODE="init_boot"
-fi
-echo "boot mode: ${PATCH_MODE}"
 IF_SAMSUNG=0
+
 exit_if_failed() {
     if [ $? -ne 0 ]; then
         echo "ERROR - Previous step failed!"
@@ -23,25 +20,35 @@ if [ $# -ne 5 ]; then
     exit 1
 fi
 
+if [ $(basename ${ORI_BOOT}) == "init_boot.img" ]; then
+  PATCH_MODE="init_boot"
+fi
+
+echo "boot mode: ${PATCH_MODE}"
 
 # Read img prop from ramdisk
 get_prop() {
-  echo "getprop.."
+  echo "## geting prop.."
   cpio -i --to-stdout --quiet < ramdisk.cpio $BUILD_PROP | grep $1 | cut -d "=" -f 2
 }
 
 cleanup() {
-    echo "cleanup.." 
+    echo "## cleaning up.." 
     ./magiskboot cleanup
     if [ -f new-boot.img ]; then
       rm new-boot.img
+      exit_if_failed
+    fi
+    if [ -f config ]; then
+      rm config
+      exit_if_failed
     fi
 }
 
 cleanup
 
 # Unpack Boot image
-echo "unpacking img.."
+echo "## unpacking img.."
 ./magiskboot unpack ${ORI_BOOT} 2>/dev/null
 
 # BRAND=$(get_prop bootimage.brand)
@@ -107,7 +114,7 @@ echo "# Patching ramdisk"
   "backup ramdisk.cpio.orig" \
   "mkdir 000 .backup" \
   "mv init_ori .backup/init" \
-  "add 000 .backup/.magisk config" #2>/dev/null
+  "add 000 .backup/.magisk config" 2>/dev/null
 exit_if_failed
 
 # Pacth Kernel
