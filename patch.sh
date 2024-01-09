@@ -18,46 +18,55 @@ exit_if_failed() {
     fi
 }
 
+if [ $# -ne 5 ]; then
+    echo "USAGE - ./patch.sh <ori_boot.img>"
+    exit 1
+fi
+
+
 # Read img prop from ramdisk
 get_prop() {
+  echo "getprop.."
   cpio -i --to-stdout --quiet < ramdisk.cpio $BUILD_PROP | grep $1 | cut -d "=" -f 2
 }
 
 cleanup() {
+    echo "cleanup.." 
     ./magiskboot cleanup
     if [ -f new-boot.img ]; then
       rm new-boot.img
     fi
 }
 
-if [ $# -ne 1 ]; then
-    echo "USAGE - ./patch.sh <ori_boot.img>"
-    exit 1
-fi
-
 cleanup
 
 # Unpack Boot image
+echo "unpacking img.."
 ./magiskboot unpack ${ORI_BOOT} 2>/dev/null
 
-BRAND=$(get_prop bootimage.brand)
-DEVICE=$(get_prop bootimage.device)
-MODEL=$(get_prop bootimage.model)
-MODEL="${MODEL// /_}"
-NAME=$(get_prop bootimage.name)
-IMG_ID=$(get_prop build.id)
-INCR_VER=$(get_prop version.incremental)
-SDK_VER=$(get_prop version.sdk)
+# BRAND=$(get_prop bootimage.brand)
+# DEVICE=$(get_prop bootimage.device)
+# MODEL=$(get_prop bootimage.model)
+# MODEL="${MODEL// /_}"
+# NAME=$(get_prop bootimage.name)
+# IMG_ID=$(get_prop build.id)
+# INCR_VER=$(get_prop version.incremental)
+# SDK_VER=$(get_prop version.sdk)
+
+BRAND=$2
+DEVICE=$3
+MODEL=$4
+IMG_ID=$5
 
 PATCHED_IMG="AZQ_${PATCH_MODE}_${BRAND}_${MODEL}_${IMG_ID}_${DATE}"
-if [ ${BRAND} == "samsung" ]; then
+if [[ ${BRAND} == "samsung" ]]; then
   IF_SAMSUNG=1
-  PATCHED_IMG="AZQ_${PATCH_MODE}_${BRAND}_${MODEL}_${INCR_VER}_${DATE}"
+  # PATCHED_IMG="AZQ_${PATCH_MODE}_${BRAND}_${MODEL}_${INCR_VER}_${DATE}"
 fi
 PATCHED_IMG="${PATCHED_IMG// /_}"
 PATCHED_IMG=$(tr [:lower:] [:upper:] <<< ${PATCHED_IMG})
 
-echo "${MODEL}"
+echo "model: ${MODEL}"
 
 # Write  config file
 CONFIG="devices_config/${BRAND}/${MODEL}"
