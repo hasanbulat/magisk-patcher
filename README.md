@@ -2,3 +2,6 @@
 ```
 ./patch.sh <boot.img>
 ```
+
+
+More info check https://github.com/topjohnwu/Magisk.git
